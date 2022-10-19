@@ -1,0 +1,5 @@
+go 1.19
+
+use ./generate-schedules
+use ./messager
+use ./sheets-to-db
