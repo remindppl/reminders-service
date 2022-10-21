@@ -2,34 +2,30 @@ package main
 
 import (
 	"context"
-	"fmt"
 	"log"
-
-	firebase "firebase.google.com/go"
-	"google.golang.org/api/option"
+	"sheets-to-db/dao"
+	"sheets-to-db/sheets"
 )
 
 func main() {
-	fmt.Println("Hello World!")
-	// Use a service account
 	ctx := context.Background()
-	sa := option.WithCredentialsFile("path/to/serviceAccount.json")
-	app, err := firebase.NewApp(ctx, nil, sa)
+
+	s, err := sheets.New(ctx, "", "")
 	if err != nil {
-		log.Fatalln(err)
+		panic(err)
+	}
+	rows, err := s.ReadSheetsData(ctx)
+	if err != nil {
+		panic(err)
 	}
 
-	client, err := app.Firestore(ctx)
-	if err != nil {
-		log.Fatalln(err)
+	db := dao.New(ctx)
+	for _, row := range rows {
+		cReq, err := dao.MakeFollowupRequest(row)
+		if err != nil {
+			log.Fatalf("Failed to convert %v", row)
+		}
+		db.Put(ctx, cReq)
 	}
-	defer client.Close()
-	_, _, err = client.Collection("users").Add(ctx, map[string]interface{}{
-		"first": "Ada",
-		"last":  "Lovelace",
-		"born":  1815,
-	})
-	if err != nil {
-		log.Fatalf("Failed adding alovelace: %v", err)
-	}
+
 }
