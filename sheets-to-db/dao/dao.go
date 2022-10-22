@@ -15,11 +15,12 @@ const (
 )
 
 var (
-	inputTimeLayout  = "01/02/2006 15:04:05"
+	inputTimeLayout  = "01/2/2006 15:04:05"
 	outputTimeLayout = "2006-01-02T15:04:05"
 )
 
 type FollowUpRequest struct {
+	__name__    string
 	RequestID   string    `json:"request_id"`
 	Name        string    `json:"name"`
 	Location    string    `json:"location"`
@@ -37,6 +38,7 @@ func MakeFollowupRequest(values []string) (*FollowUpRequest, error) {
 	if err != nil {
 		return nil, err
 	}
+	fr.__name__ = fr.RequestID
 	fr.Name = values[FIELD_ORDER_NAME]
 	fr.Location = values[FIELD_ORDER_LOCATION]
 	fr.PhoneNum = values[FIELD_ORDER_PHONE_NUM]
@@ -58,5 +60,5 @@ func makeRequestID(ts string) (string, error) {
 }
 
 func getSowTimestamp(ts string) (time.Time, error) {
-	return time.Parse("01/02/2006", ts)
+	return time.Parse("01/2/2006", ts)
 }

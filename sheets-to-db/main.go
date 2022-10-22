@@ -7,10 +7,16 @@ import (
 	"sheets-to-db/sheets"
 )
 
+var (
+	// TODO: Get these values either through env vars or through CLI args.
+	sheetID    = "1Fklhwg08szFk09SonD0UeCd6_8p__AAOMciyN4Nrmkw"
+	sheetRange = "Form Responses 1!A2:K"
+)
+
 func main() {
 	ctx := context.Background()
 
-	s, err := sheets.New(ctx, "", "")
+	s, err := sheets.New(ctx, sheetID, sheetRange)
 	if err != nil {
 		panic(err)
 	}
@@ -19,13 +25,15 @@ func main() {
 		panic(err)
 	}
 
-	db := dao.New(ctx)
+	db := dao.New(ctx, "followup_requests")
 	for _, row := range rows {
 		cReq, err := dao.MakeFollowupRequest(row)
 		if err != nil {
-			log.Fatalf("Failed to convert %v", row)
+			log.Fatalf("Failed to convert %v. Err: %v", row, err)
 		}
-		db.Put(ctx, cReq)
+		if err := db.Put(ctx, cReq); err != nil {
+			log.Fatalf("Failed to add record to DB. Err: %v", err)
+		}
 	}
 
 }

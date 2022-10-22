@@ -8,7 +8,7 @@ import (
 )
 
 var (
-	envProjectId = "env-project-id"
+	envProjectId = "ENV_PROJECT_ID"
 )
 
 type Dao interface {
@@ -17,18 +17,18 @@ type Dao interface {
 }
 
 type FirestoreDao struct {
-	client *firestore.Client
+	client     *firestore.Client
+	collection string
 }
 
 func (db *FirestoreDao) Put(ctx context.Context, req *FollowUpRequest) error {
-	docRef := db.client.Collection("collection").NewDoc()
-	docRef.ID = req.RequestID
+	docRef := db.client.Collection(db.collection).NewDoc()
 	_, err := docRef.Create(ctx, req)
 	return err
 }
 
 func (db *FirestoreDao) Get(ctx context.Context, id string) (*FollowUpRequest, error) {
-	docRef := db.client.Collection("collection").Doc(id)
+	docRef := db.client.Collection(db.collection).Doc(id)
 	doc, err := docRef.Get(ctx)
 	if err != nil {
 		return nil, err
@@ -38,14 +38,15 @@ func (db *FirestoreDao) Get(ctx context.Context, id string) (*FollowUpRequest, e
 	return &followup, nil
 }
 
-func New(ctx context.Context) FirestoreDao {
+func New(ctx context.Context, collection string) *FirestoreDao {
 	projectID, found := os.LookupEnv(envProjectId)
 	if !found {
-		panic("Didn't find projectID env var")
+		panic("Didn't find projectID env var: " + envProjectId)
 	}
 
 	c, _ := firestore.NewClient(ctx, projectID)
-	return FirestoreDao{
-		client: c,
+	return &FirestoreDao{
+		client:     c,
+		collection: collection,
 	}
 }
