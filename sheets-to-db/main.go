@@ -16,6 +16,16 @@ var (
 func main() {
 	ctx := context.Background()
 
+	db, err := dao.New(ctx, "followup_requests")
+	if err != nil {
+		panic(err)
+	}
+	defer func() {
+		if err := db.Close(ctx); err != nil {
+			log.Fatalf("failed to close db connection. Err: %v", err)
+		}
+	}()
+
 	s, err := sheets.New(ctx, sheetID, sheetRange)
 	if err != nil {
 		panic(err)
@@ -25,7 +35,6 @@ func main() {
 		panic(err)
 	}
 
-	db := dao.New(ctx, "followup_requests")
 	for _, row := range rows {
 		cReq, err := dao.MakeFollowupRequest(row)
 		if err != nil {
@@ -35,5 +44,4 @@ func main() {
 			log.Fatalf("Failed to add record to DB. Err: %v", err)
 		}
 	}
-
 }

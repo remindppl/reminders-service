@@ -2,6 +2,7 @@ package dao
 
 import (
 	"context"
+	"fmt"
 	"os"
 
 	"cloud.google.com/go/firestore"
@@ -14,6 +15,7 @@ var (
 type Dao interface {
 	Put(ctx context.Context, req *FollowUpRequest) error
 	Get(ctx context.Context, id string) (*FollowUpRequest, error)
+	Close(ctx context.Context) error
 }
 
 type FirestoreDao struct {
@@ -22,31 +24,39 @@ type FirestoreDao struct {
 }
 
 func (db *FirestoreDao) Put(ctx context.Context, req *FollowUpRequest) error {
-	docRef := db.client.Collection(db.collection).NewDoc()
-	_, err := docRef.Create(ctx, req)
+	docRef := db.client.Doc(db.collection + "/" + req.RequestID)
+	_, err := docRef.Set(ctx, req)
 	return err
 }
 
 func (db *FirestoreDao) Get(ctx context.Context, id string) (*FollowUpRequest, error) {
-	docRef := db.client.Collection(db.collection).Doc(id)
-	doc, err := docRef.Get(ctx)
+	docRef := db.client.Doc(db.collection + "/" + id)
+	ds, err := docRef.Get(ctx)
 	if err != nil {
 		return nil, err
 	}
-	var followup FollowUpRequest
-	doc.DataTo(&followup)
-	return &followup, nil
+	out := FollowUpRequest{}
+	if err := ds.DataTo(&out); err != nil {
+		return nil, err
+	}
+	return &out, nil
 }
 
-func New(ctx context.Context, collection string) *FirestoreDao {
+func (db *FirestoreDao) Close(ctx context.Context) error {
+	return db.client.Close()
+}
+
+func New(ctx context.Context, collection string) (*FirestoreDao, error) {
 	projectID, found := os.LookupEnv(envProjectId)
 	if !found {
 		panic("Didn't find projectID env var: " + envProjectId)
 	}
-
-	c, _ := firestore.NewClient(ctx, projectID)
+	c, err := firestore.NewClient(ctx, projectID)
+	if err != nil {
+		return nil, fmt.Errorf("failed to create firestore client. Err: %v", err)
+	}
 	return &FirestoreDao{
 		client:     c,
 		collection: collection,
-	}
+	}, nil
 }
